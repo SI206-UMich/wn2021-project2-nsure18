@@ -14,8 +14,22 @@ def get_titles_from_search_results(filename):
 
     [('Book title 1', 'Author 1'), ('Book title 2', 'Author 2')...]
     """
-
-    pass
+    f = open("search_results.htm", "r")
+    soup = BeautifulSoup(f, 'html.parser')
+    titles = []
+    f.close()
+    content = soup.find('div', class_ = 'content')
+    maincontainer = content.find('div', class_ = 'mainContentContainer')
+    leftcontainer = maincontainer.find('div', class_ = 'leftContainer')
+    tablecontainer = leftcontainer.find('table', class_ = 'tableList')
+    table = tablecontainer.find('tbody')
+    entries = table.find_all('tr')
+    for entry in entries:
+        title = entry.find("span", itemprop = "name").text
+        author = entry.find("a", class_ = "authorName").text
+        tup = (title, author)
+        titles.append(tup)
+    return titles
 
 
 def get_search_links():
@@ -32,7 +46,18 @@ def get_search_links():
 
     """
 
-    pass
+    urls = []
+    resp = requests.get("https://www.goodreads.com/search?q=fantasy&qid=NwUsLiA2Nc")
+    soup = BeautifulSoup(resp.content, 'html.parser')
+    div = soup.find_all('div', class_ = "leftContainer")
+    for item in div:
+        links = item.find_all('a')
+        for link in links:
+            url = link.get('href', None)
+            if re.search(r"\/book\/show\/\S+", str(url)):
+                full_url = "https://www.goodreads.com" + url
+                urls.append(full_url)
+    return urls[:10]
 
 
 def get_book_summary(book_url):
@@ -49,7 +74,13 @@ def get_book_summary(book_url):
     Make sure to strip() any newlines from the book title and number of pages.
     """
 
-    pass
+    resp = requests.get(book_url)
+    soup = BeautifulSoup(resp.content, 'html.parser')
+    title = soup.find('h1', class_ = 'gr-h1 gr-h1--serif').text.strip()
+    author = soup.find('a', class_ = 'authorName').text.strip()
+    pages = soup.find('span', itemprop = 'numberOfPages').text.strip()
+    page = int(pages[:-6])
+    return (title, author, page)
 
 
 def summarize_best_books(filepath):
